@@ -11,7 +11,7 @@ const SHEETS := {
 	"maple": {"path": S + "Characters/Free Cow Sprites.png", "frame": Vector2i(32, 32),
 		"idle_row": 0, "idle_count": 3, "fps": 3.0, "scale": 1.0, "modulate": Color(1, 1, 1)},
 	"clucky": {"path": S + "Characters/Free Chicken Sprites.png", "frame": Vector2i(16, 16),
-		"idle_row": 0, "idle_count": 4, "fps": 5.0, "scale": 1.5, "modulate": Color(1, 1, 1)},
+		"idle_row": 0, "idle_count": 2, "fps": 3.0, "scale": 1.5, "modulate": Color(1, 1, 1)},
 	"juniper": {"path": S + "Characters/Basic Charakter Spritesheet.png", "frame": Vector2i(48, 48),
 		"idle_row": 0, "idle_count": 2, "fps": 3.0, "scale": 1.0, "modulate": Color(1.0, 0.86, 0.84)},
 }
@@ -41,11 +41,13 @@ const ITEM_WORLD := {
 }
 
 const UI_SHEET := S + "ui/Sprite sheet for Basic Pack.png"
+# Exact alpha bounding boxes (PIL) in the UI sheet. Hearts/stars/coin use the white-outlined
+# filled variants (row y=83), which read cleanly on the cream bubble.
 const UI_ICONS := {
-	"coin": Rect2(627, 98, 9, 12), "star": Rect2(529, 97, 14, 13), "heart": Rect2(579, 98, 11, 12),
+	"coin": Rect2(628, 83, 7, 9), "star": Rect2(530, 83, 12, 10), "heart": Rect2(580, 83, 9, 9),
 	"face_grin": Rect2(356, 148, 9, 9), "face_smile": Rect2(372, 148, 9, 9), "face_neutral": Rect2(388, 148, 9, 9),
 	"face_sad": Rect2(404, 148, 9, 9), "face_angry": Rect2(420, 148, 9, 9),
-	"bang": Rect2(614, 209, 4, 14), "question": Rect2(674, 195, 12, 12),
+	"bang": Rect2(614, 209, 4, 14), "question": Rect2(675, 195, 10, 12),
 }
 # emote kind -> [ui icon id, modulate]
 const EMOTE_ICONS := {

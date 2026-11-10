@@ -151,22 +151,35 @@ func emote(kind: String) -> void:
 	holder.scale = Vector2(0.2, 0.2)
 	holder.add_child(panel)
 	b.add_child(holder)
+	# little tail pointing down-left at the villager (world pixels, under the bubble edge)
+	var tail := Polygon2D.new()
+	tail.polygon = PackedVector2Array([Vector2(-6, -1), Vector2(-1, -1), Vector2(-8, 4)])
+	tail.color = Color("#ead9b8")
+	b.add_child(tail)
+	var tail_in := Polygon2D.new()
+	tail_in.polygon = PackedVector2Array([Vector2(-5, -2), Vector2(-2, -2), Vector2(-6.5, 2)])
+	tail_in.color = UiKit.CREAM
+	b.add_child(tail_in)
 	var ic: Array = Art.EMOTE_ICONS.get(kind, ["face_smile", Color.WHITE])
 	if not Art.UI_ICONS.has(ic[0]):
 		ic = ["star", Color.WHITE]
 	if true:  # always a single pixel icon; never text (text could overflow the bubble)
-		panel.size = Vector2(100, 90)
-		panel.position = Vector2(-50, -90)
+		var isz: Vector2 = Art.UI_ICONS[ic[0]].size
+		var side := maxf(isz.x, isz.y) + 7.0   # icon fills ~60% of the bubble, 1:1 pixels
+		panel.size = Vector2(side, side) * 5.0
+		panel.position = Vector2(-side * 2.5, -side * 5.0)
 		var spr := Sprite2D.new()
 		spr.texture = Art.ui_icon(ic[0])
 		spr.modulate = ic[1]
-		spr.position = Vector2(0, -9)
+		spr.centered = false
+		var base := Vector2(-floorf(isz.x / 2.0), -floorf(side / 2.0) - floorf(isz.y / 2.0))
+		spr.position = base
 		b.add_child(spr)
 		var wt := spr.create_tween().set_loops()
-		wt.tween_property(spr, "rotation", 0.18, 0.18).set_trans(Tween.TRANS_SINE)
-		wt.tween_property(spr, "rotation", -0.18, 0.36).set_trans(Tween.TRANS_SINE)
-		wt.tween_property(spr, "rotation", 0.0, 0.18).set_trans(Tween.TRANS_SINE)
-		wt.tween_interval(0.3)
+		wt.tween_property(spr, "position:y", base.y - 1.0, 0.0)
+		wt.tween_interval(0.22)
+		wt.tween_property(spr, "position:y", base.y, 0.0)
+		wt.tween_interval(0.22)
 	else:
 		var l := Label.new()
 		l.text = e[0]

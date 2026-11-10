@@ -165,6 +165,9 @@ func refresh_quests() -> void:
 	var act := GameState.active_quests()
 	if act.is_empty():
 		quest_list.add_child(UiKit.label("Talk to villagers!", 18, Color("#a08060")))
+	var nles: int = (GameState.get("lessons") as Array).size() if GameState.get("lessons") is Array else 0
+	if nles > 0:
+		quest_list.add_child(UiKit.bold("Lessons learned: %d" % nles, 15, Color("#2a9d8f")))
 	for q in act:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
@@ -176,6 +179,11 @@ func refresh_quests() -> void:
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(title)
 		v.add_child(UiKit.label("for %s  |  %d bells" % [Art.NPC_NAMES.get(q["npc"], q["npc"]), int(q["reward"])], 14, Color("#a08060")))
+		if str(q.get("lesson", "")) != "":
+			var les := UiKit.label("Tip: %s" % str(q["lesson"]), 14, Color("#2a9d8f"))
+			les.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			les.custom_minimum_size.x = 170
+			v.add_child(les)
 		row.add_child(v)
 		var have := mini(GameState.count(q["item"]), int(q["count"]))
 		if q.has("progress"):
