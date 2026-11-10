@@ -34,12 +34,22 @@ Deepgram: the browser never sees a Deepgram key. Calls use Vapi's Deepgram unles
  walk away  ----> hotline.stop()
 ```
 
-The contract between the two halves is `CONTRACT.md`. Tools (`emote`, `animate`, `give_quest`, `complete_quest`, `give_item`, `gift`, `look_up`, `end_conversation`) are client-side function tools with no server URL and `async: true`, so the villager never waits on the game: the call arrives as a `tool-calls` client message and becomes a `{"type":"tool",...}` event for Godot.
+The contract between the two halves is `CONTRACT.md`. Tools (`emote`, `animate`, `give_quest`, `complete_quest`, `give_item`, `teach`, `look_up`, `remember`, `follow`, `stay`, `go_to`, `help_farm`, `show_me`, `gift`, `end_conversation`) are client-side function tools with no server URL and `async: true`, so the villager never waits on the game: the call arrives as a `tool-calls` client message and becomes a `{"type":"tool",...}` event for Godot.
+
+## Villagers: teachers with a memory
+
+- **Maple** (cow, Aura-2 `hera`, warm female): shopkeeper who teaches money, trading and cooking.
+- **Clucky** (chicken, Aura-2 `apollo`, energetic male): coach who teaches science and nature facts with big reactions.
+- **Juniper** (gardener, Aura-2 `cora`, soft female): teaches farming and plants step by step.
+
+They answer in 1-2 short sentences and actually teach: `teach` shows a lesson card (2-4 steps + a fun fact), `look_up` fetches real-world facts via Exa, and every `give_quest` carries a one-sentence `lesson`. Ask them to do things and they do it in the world: `follow`, `stay`, `go_to {place}`, `help_farm {action}`, `show_me {topic}`.
+
+**Memory** lives in the browser (localStorage, one record per villager): the last 12 final transcript lines, facts the villager saved with the `remember` tool, the number of talks, the last quest and recent greetings. Each call puts a short "what you remember about this player" block into the system prompt, along with the quests done from the game's context. Greetings are model-generated (`firstMessageMode: assistant-speaks-first-with-model-generated-message`), at most 10 words, use memory when they can and are told never to repeat an earlier one. Reset with `hotline.forget()` (or `hotline.forget("maple")`) in the console.
 
 ## Latency choices
 
 - One small per-villager system prompt (persona + rules + the player's state from `start()`'s context), replies capped at 1-2 short sentences and `maxTokens: 90`.
-- `firstMessage` + `assistant-speaks-first`: the greeting is fixed text, so it goes straight to TTS without a model call.
+- The greeting is model-generated so it never repeats; that costs one short model call (≤10 words) before the first audio.
 - Transcriber `endpointing: 10` (Deepgram's lowest); `startSpeakingPlan.waitSeconds: 0.2` with transcription endpointing 0.1 s after punctuation; no smart-endpointing model in the path.
 - `stopSpeakingPlan` `voiceSeconds: 0.2` so the player can interrupt quickly.
 - The SDK is imported as soon as the page loads; the mic permission is requested on the first click or keypress and again by `prewarm()`. `prewarm()` does not start a call (Vapi bills from call start).

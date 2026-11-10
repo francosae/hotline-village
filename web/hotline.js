@@ -10,6 +10,9 @@ const KEY_STORAGE = "hotline.vapiPublicKey";
 const ITEMS = ["egg", "milk", "wheat", "tomato", "pumpkin", "wood", "flower", "mushroom", "seed_tomato", "seed_wheat", "sapling"];
 const QUEST_ITEMS = [...ITEMS, "plant_tree"]; // plant_tree: count = trees to plant
 const GIVE_ITEMS = ["seed_tomato", "seed_wheat", "sapling", "egg", "milk", "flower"];
+const PLACES = ["farm", "pond", "plaza", "garden", "house"];
+const FARM_ACTIONS = ["water", "harvest", "till"];
+const SHOW_TOPICS = ["till", "plant", "water", "harvest", "plant_tree", "quests"];
 const EXA_URL = "/api/exa"; // scripts/serve.py proxies to Exa /answer; the Exa key stays on the server
 const EMOTES = ["happy", "love", "laugh", "surprised", "question", "angry", "sad", "idea", "music", "sleepy"];
 const ANIMS = ["jump", "spin", "shake", "dance"];
@@ -18,26 +21,55 @@ const MODEL = "gpt-4.1-mini";
 const NPCS = {
   maple: {
     name: "Maple",
-    voice: { provider: "deepgram", model: "aura-2", voiceId: "hera", speed: 1.05 },
+    // Aura-2 "hera": warm, smooth female
+    voice: { provider: "deepgram", model: "aura-2", voiceId: "hera", speed: 1.0 },
     persona:
-      "You are Maple, a warm, gossipy cow who runs the village shop. You say 'moo-hoo!' when delighted, love village gossip, and fuss over the player like a favorite customer.",
-    greeting: "Moo-hoo! Welcome to my shop, sweetie! What's the news?",
+      "You are Maple, a warm cow who runs the village shop. You teach money, trading and cooking: prices, saving bells, how wheat becomes flour and bread, how milk becomes butter. Calm, kind shopkeeper words: 'sweetie', 'a fair trade', 'moo-hoo'.",
   },
   clucky: {
     name: "Clucky",
-    voice: { provider: "deepgram", model: "aura-2", voiceId: "apollo", speed: 1.15 },
+    // Aura-2 "apollo": confident, energetic male
+    voice: { provider: "deepgram", model: "aura-2", voiceId: "apollo", speed: 1.12 },
     persona:
-      "You are Clucky, a hyper, wildly dramatic chicken. Everything is a crisis or a triumph. You gasp, you swoon, you say 'bawk!' a lot.",
-    greeting: "BAWK! Oh thank goodness you're here, this is a disaster!",
+      "You are Clucky, an energetic chicken coach. You teach science and nature facts with big reactions: why plants need sun, how eggs form, weather, animals. Sporty coach words: 'let's go!', 'champ', 'science time!', 'bawk!'.",
   },
   juniper: {
     name: "Juniper",
-    voice: { provider: "deepgram", model: "aura-2", voiceId: "aurora", speed: 0.95 },
+    // Aura-2 "cora": soft, melodic, caring female
+    voice: { provider: "deepgram", model: "aura-2", voiceId: "cora", speed: 0.95 },
     persona:
-      "You are Juniper, a dreamy villager girl who tends the gardens. You talk softly about clouds, seeds and moonlight, and drift off mid-thought sometimes.",
-    greeting: "Oh... hi there. The flowers said you'd come by today.",
+      "You are Juniper, a calm gardener girl. You teach farming and plants step by step: tilling, planting, watering, harvesting, planting trees, why roots need water. Gentle, slow, nature words: 'little sprout', 'softly', 'roots', 'sunlight'.",
   },
 };
+
+// ---------- memory (per villager, localStorage) ----------
+const MEM_PREFIX = "hotline.mem.";
+function memLoad(npcId) {
+  try {
+    const m = JSON.parse(localStorage.getItem(MEM_PREFIX + npcId) || "null");
+    if (m && typeof m === "object") return { turns: [], facts: [], talks: 0, lastQuest: null, greetings: [], ...m };
+  } catch (_) {}
+  return { turns: [], facts: [], talks: 0, lastQuest: null, greetings: [] };
+}
+function memSave(npcId, m) {
+  m.turns = m.turns.slice(-12); m.facts = m.facts.slice(-12); m.greetings = m.greetings.slice(-4);
+  try { localStorage.setItem(MEM_PREFIX + npcId, JSON.stringify(m)); } catch (_) {}
+}
+function memUpdate(npcId, f) { const m = memLoad(npcId); f(m); memSave(npcId, m); }
+function memBlock(npcId, ctx) {
+  const m = memLoad(npcId);
+  const lines = [];
+  if (!m.talks) lines.push("This is your first time meeting the player.");
+  else lines.push(`You've talked with the player ${m.talks} time(s) before.`);
+  if (m.facts.length) lines.push("Facts about the player: " + m.facts.join("; ") + ".");
+  if (m.lastQuest) lines.push(`Last quest you gave: ${m.lastQuest}.`);
+  const quests = Array.isArray(ctx?.quests) ? ctx.quests.filter((q) => q.npc === npcId) : [];
+  const done = quests.filter((q) => q.done).map((q) => `${q.count} ${q.item}`);
+  if (done.length) lines.push("Quests they completed for you: " + done.join(", ") + ".");
+  if (m.turns.length) lines.push("Last lines of your previous chat: " + m.turns.slice(-6).map((t) => `${t.who === "npc" ? "You" : "Player"}: ${t.text}`).join(" / "));
+  if (m.greetings.length) lines.push("Greetings you already used (never reuse or paraphrase): " + m.greetings.map((g) => `"${g}"`).join(", ") + ".");
+  return lines.join("\n");
+}
 
 // ---------- event queue (drained by Godot every frame) ----------
 const queue = [];
@@ -117,7 +149,8 @@ const TOOLS = [
     count: { type: "integer", minimum: 1, maximum: 5 },
     title: { type: "string", description: "short cute quest title" },
     reward: { type: "integer", minimum: 100, maximum: 500, description: "bells" },
-  }, ["item", "count", "title", "reward"]),
+    lesson: { type: "string", description: "one sentence: how to do it in the game" },
+  }, ["item", "count", "title", "reward", "lesson"]),
   fn("complete_quest", "Player says they finished your quest. The game checks it.", {
     item: { type: "string", enum: QUEST_ITEMS },
   }, ["item"]),
@@ -125,9 +158,22 @@ const TOOLS = [
     item: { type: "string", enum: GIVE_ITEMS },
     count: { type: "integer", minimum: 1, maximum: 5 },
   }, ["item", "count"]),
-  fn("look_up", "Go look something up: real-world facts, the weather, gardening tips, news, anything factual or current.", {
+  fn("teach", "Show a lesson card for anything how-to.", {
+    title: { type: "string" },
+    steps: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4, description: "2-4 short concrete steps" },
+    fact: { type: "string", description: "optional fun real-world fact" },
+  }, ["title", "steps"]),
+  fn("look_up", "Look up real-world facts, the weather, tips or news.", {
     query: { type: "string", description: "a clear web search question" },
   }, ["query"]),
+  fn("remember", "Save something the player shared about themselves (name, likes, plans).", {
+    fact: { type: "string", description: "short fact, e.g. 'loves pumpkins'" },
+  }, ["fact"]),
+  fn("follow", "Walk after the player until told to stay."),
+  fn("stay", "Stop and stay where you are."),
+  fn("go_to", "Walk to a place.", { place: { type: "string", enum: PLACES } }, ["place"]),
+  fn("help_farm", "Walk to the farm and do this on every plot.", { action: { type: "string", enum: FARM_ACTIONS } }, ["action"]),
+  fn("show_me", "Walk over and demonstrate this once.", { topic: { type: "string", enum: SHOW_TOPICS } }, ["topic"]),
   fn("gift", "Give the player some bells as a small present.", { bells: { type: "integer", minimum: 1, maximum: 500 } }, ["bells"]),
   fn("end_conversation", "Call after saying goodbye when the chat is over."),
 ];
@@ -143,8 +189,6 @@ function describeState(npcId, ctx) {
   if (mine.length) lines.push("Your open quest: " + mine.map((q) => `${q.count} ${q.item} ("${q.title}", ${q.reward} bells)`).join("; ") + ". Don't give another until it's done.");
   else lines.push("You have no open quest with the player; offer one when it fits.");
   if (others.length) lines.push("Other villagers' quests: " + others.map((q) => `${q.npc} wants ${q.count} ${q.item}`).join("; ") + ".");
-  const done = quests.filter((q) => q.npc === npcId && q.done).length;
-  if (done) lines.push(`Player already finished ${done} quest(s) for you.`);
   return lines.join(" ");
 }
 
@@ -153,28 +197,30 @@ function buildAssistant(npcId, ctx) {
   if (!npc) throw new Error("unknown npc " + npcId);
   const system = [
     npc.persona,
-    "You live in a cozy Animal Crossing-style village. Talk out loud to the player.",
-    "Reply in 1-2 SHORT sentences. Stay in character always. No lists, no emoji, no stage directions.",
-    "Use emote and animate tools generously, about every reply, while you speak.",
-    `Quests: offer ONE quest at a time with give_quest. Items: ${QUEST_ITEMS.join(", ")} only. Count 1-5, reward 100-500 bells. Items are found around the village.`,
-    "Farming: the player can hoe, plant, water and harvest. Hand out seeds or saplings with give_item, then ask for grown crops (tomato, wheat, pumpkin) or plant_tree quests.",
-    "You're curious about the wide world: offer to go look things up. Whenever the player asks anything factual or current (weather, facts, tips, news), say you'll check and call look_up, then share what you learned in character.",
-    "The game only knows quests you give with the give_quest tool: ALWAYS call it when you offer one, never just say it.",
-    "When the player says they have the items, call complete_quest right away; the game pays the reward, so don't also gift. If a system note says they're short, tell them what's missing.",
+    "You live in a cozy Animal Crossing-style village and talk out loud with the player.",
+    "Style: 1-2 SHORT sentences, direct, respectful, educational. Stay in character in your own words. No lists, no emoji, no stage directions.",
+    "When asked a question, really answer it and teach. For anything how-to, call teach with 2-4 concrete steps. For real-world facts, weather or news, say you'll check and call look_up.",
+    "When the player asks you to do something (follow me, stay, go to the pond, water/harvest/till my crops, show me how to plant), call follow, stay, go_to, help_farm or show_me right away and say a short line.",
+    "Use emote and animate generously while you speak.",
+    `Quests: ONE at a time, ALWAYS via give_quest (never just say it). Items: ${QUEST_ITEMS.join(", ")}. Count 1-5, reward 100-500 bells, plus a one-sentence lesson; briefly explain the real-world idea behind it (why seeds need water, how wheat becomes bread).`,
+    "Farming: the player can till, plant, water and harvest. Hand out seeds or saplings with give_item, then ask for grown crops or plant_tree.",
+    "When the player says they finished, call complete_quest at once; the game pays, so don't also gift. If a system note says they're short, say what's missing.",
+    "When the player tells you about themselves (name, likes, plans), call remember.",
     "When the player says bye, say a quick goodbye and call end_conversation.",
+    "Your first line: greet in 10 words or fewer, mention something you remember if you can, and never reuse a previous greeting.",
     "State: " + describeState(npcId, ctx),
+    "What you remember about this player:\n" + memBlock(npcId, ctx),
   ].join("\n");
   return {
     name: `hotline-${npcId}`,
-    firstMessage: npc.greeting,
-    firstMessageMode: "assistant-speaks-first",
+    firstMessageMode: "assistant-speaks-first-with-model-generated-message",
     transcriber: { provider: "deepgram", model: "nova-3", language: "en", endpointing: 10 },
     voice: { ...npc.voice },
     model: {
       provider: "openai",
       model: MODEL,
-      temperature: 0.8,
-      maxTokens: 90,
+      temperature: 0.9,
+      maxTokens: 120,
       messages: [{ role: "system", content: system }],
       tools: TOOLS,
     },
@@ -188,13 +234,13 @@ function buildAssistant(npcId, ctx) {
     maxDurationSeconds: 600,
   };
 }
-
 // ---------- calls ----------
 let vapiInst = null;     // Vapi instance of the live/connecting call
 let callNpc = "";        // npc of that call
 let gen = 0;             // bumps on each start/stop; stale events are ignored
 let stopping = null;     // promise of an in-flight stop
 let prewarmed = null;    // { npcId, at }
+const greeted = new Set(); // gens whose greeting is already stored
 let pendingEnd = -1;     // gen of a call whose villager called end_conversation
 
 function parseArgs(a) {
@@ -216,6 +262,8 @@ function handleToolCalls(npcId, msg, myGen) {
     if (c.id) seen.add(c.id);
     const args = parseArgs(c.args);
     push({ type: "tool", npc: npcId, name: c.name, args });
+    if (c.name === "remember" && args.fact) memUpdate(npcId, (m) => { const f = String(args.fact).slice(0, 120); if (!m.facts.includes(f)) m.facts.push(f); });
+    if (c.name === "give_quest") memUpdate(npcId, (m) => { m.lastQuest = `${args.count || ""} ${args.item || ""} ("${args.title || ""}")`.trim(); });
     if (c.name === "look_up") lookUp(npcId, String(args.query || args._raw || ""), myGen);
     if (c.name === "end_conversation") {
       // Let the goodbye finish (hang up shortly after the voice stops), unless the game already did.
@@ -266,7 +314,15 @@ function wire(v, npcId, myGen) {
     if (!live() || !m) return;
     if (m.type === "tool-calls") handleToolCalls(npcId, m, myGen);
     else if (m.type === "transcript" || String(m.type).startsWith("transcript")) {
-      push({ type: "speech", npc: npcId, who: m.role === "user" ? "player" : "npc", text: m.transcript || "", final: m.transcriptType === "final" });
+      const who = m.role === "user" ? "player" : "npc", text = m.transcript || "", final = m.transcriptType === "final";
+      push({ type: "speech", npc: npcId, who, text, final });
+      if (final && text.trim()) {
+        memUpdate(npcId, (mem) => {
+          mem.turns.push({ who, text: text.slice(0, 160) });
+          if (who === "npc" && !greeted.has(myGen)) { greeted.add(myGen); mem.greetings.push(text.slice(0, 100)); }
+          if (who === "player") greeted.add(myGen);
+        });
+      }
     }
   });
   const fail = (e) => {
@@ -314,6 +370,7 @@ const hotline = {
         const key = readKey();
         if (!key) throw new Error("No Vapi public key. Add ?vapiKey=... or paste it in the key box.");
         const assistant = buildAssistant(npcId, ctx);
+        memUpdate(npcId, (m) => { m.talks = (m.talks || 0) + 1; });
         if (vapiInst) await stopCurrent();
         else if (stopping) await stopping;
         const Vapi = await loadSdk();
@@ -358,6 +415,8 @@ const hotline = {
   },
 
   _buildAssistant: buildAssistant,
+  _memory(npcId) { return memLoad(npcId); },
+  forget(npcId) { for (const id of npcId ? [npcId] : Object.keys(NPCS)) { try { localStorage.removeItem(MEM_PREFIX + id); } catch (_) {} } },
   _state() { return { gen, callNpc, live: !!vapiInst, prewarmed, queued: queue.length }; },
 };
 
