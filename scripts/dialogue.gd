@@ -20,6 +20,45 @@ var _npc_speaking := false
 var _level := 0.0
 var _t := 0.0
 var _connecting := false
+var lookup_pill: PanelContainer
+var lookup_label: Label
+var learned: PanelContainer
+var learned_title: Label
+var learned_query: Label
+var learned_text: Label
+var _lookup_name := ""
+var _learned_tween: Tween
+
+func show_lookup(who: String, query: String) -> void:
+	_lookup_name = who
+	lookup_pill.visible = true
+	lookup_label.text = "%s is looking it up..." % who
+	lookup_pill.reset_size()
+	lookup_pill.pivot_offset = lookup_pill.size * 0.5
+	UiKit.pop_in(lookup_pill, 0.5)
+
+func lookup_failed(who: String) -> void:
+	lookup_label.text = "%s couldn't find it" % who
+	await get_tree().create_timer(2.0).timeout
+	lookup_pill.visible = false
+	_lookup_name = ""
+
+func show_learned(who: String, query: String, summary: String) -> void:
+	lookup_pill.visible = false
+	_lookup_name = ""
+	learned_title.text = "%s learned something!" % who
+	learned_query.text = "\"%s\"" % query
+	learned_text.text = summary if summary.length() <= 220 else summary.substr(0, 217) + "..."
+	learned.visible = true
+	learned.reset_size()
+	learned.pivot_offset = learned.size * 0.5
+	UiKit.pop_in(learned, 0.6)
+	if _learned_tween:
+		_learned_tween.kill()
+	_learned_tween = learned.create_tween()
+	_learned_tween.tween_interval(7.0)
+	_learned_tween.tween_property(learned, "modulate:a", 0.0, 0.4)
+	_learned_tween.tween_callback(func(): learned.visible = false)
 
 func _ready() -> void:
 	layer = 10
@@ -99,6 +138,37 @@ func _ready() -> void:
 	player_label.custom_minimum_size.x = 120
 	player_bubble.add_child(player_label)
 	root.add_child(player_bubble)
+	# lookup pill + learned card
+	lookup_pill = PanelContainer.new()
+	var lp := UiKit.box(Color("#2a9d8f"), 22)
+	lp.content_margin_left = 22
+	lp.content_margin_right = 22
+	lookup_pill.add_theme_stylebox_override("panel", lp)
+	lookup_label = UiKit.label("", 20, Color.WHITE)
+	lookup_pill.add_child(lookup_label)
+	lookup_pill.visible = false
+	root.add_child(lookup_pill)
+	learned = PanelContainer.new()
+	var lc := UiKit.box(UiKit.CREAM, 28, true, 4, Color("#9fd8cf"))
+	lc.content_margin_left = 24
+	lc.content_margin_right = 24
+	lc.content_margin_top = 16
+	lc.content_margin_bottom = 18
+	learned.add_theme_stylebox_override("panel", lc)
+	var lv := VBoxContainer.new()
+	lv.add_theme_constant_override("separation", 4)
+	learned_title = UiKit.label("Learned!", 24, Color("#2a9d8f"))
+	lv.add_child(learned_title)
+	learned_query = UiKit.label("", 16, Color("#a08060"))
+	lv.add_child(learned_query)
+	learned_text = UiKit.label("", 19, Color("#5b4636"))
+	learned_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	learned_text.custom_minimum_size.x = 380
+	lv.add_child(learned_text)
+	learned.add_child(lv)
+	learned.visible = false
+	learned.rotation = 0.025
+	root.add_child(learned)
 	hint = UiKit.label("Esc  hang up", 16, Color("#a08060"))
 	root.add_child(hint)
 	_set_visible(false)
@@ -118,6 +188,10 @@ func _layout() -> void:
 	var pw := minf(player_label.get_minimum_size().x + 40, 520)
 	player_label.custom_minimum_size.x = minf(maxf(player_label.get_minimum_size().x, 120), 480)
 	player_bubble.position = Vector2(bx + 940 - player_bubble.size.x - 30, by - player_bubble.size.y - 14)
+	lookup_pill.position = Vector2(bx + 230, by - lookup_pill.size.y - 12)
+	learned.position = Vector2(vs.x - learned.size.x - 30, 150)
+	if _lookup_name != "":
+		lookup_label.text = "%s is looking it up%s" % [_lookup_name, ".".repeat(1 + int(_t * 3.0) % 3)]
 
 func open_for(id: String) -> void:
 	npc = id
@@ -145,6 +219,8 @@ func close() -> void:
 	if not open:
 		return
 	open = false
+	lookup_pill.visible = false
+	_lookup_name = ""
 	Sfx.play("close")
 	Sfx.duck(false)
 	var t := box.create_tween()

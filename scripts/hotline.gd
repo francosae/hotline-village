@@ -7,6 +7,7 @@ signal speech(npc: String, who: String, text: String, final: bool)
 signal speaking(npc: String, on: bool)
 signal volume(level: float)
 signal tool(npc: String, name: String, args: Dictionary)
+signal lookup(npc: String, query: String, status: String, summary: String)
 
 var is_web := OS.has_feature("web")
 var active_npc := ""
@@ -97,6 +98,8 @@ func _emit(ev: Dictionary) -> void:
 			speaking.emit(npc, bool(ev.get("on", false)))
 		"volume":
 			volume.emit(float(ev.get("level", 0.0)))
+		"lookup":
+			lookup.emit(npc, str(ev.get("query", "")), str(ev.get("status", "")), str(ev.get("summary", "")))
 		"tool":
 			var args = ev.get("args", {})
 			tool.emit(npc, str(ev.get("name", "")), args if args is Dictionary else {})
@@ -147,7 +150,11 @@ func _mock_start(npc: String, context_json: String) -> void:
 		push.call(0.1, {"type": "tool", "name": "emote", "args": {"kind": "love"}})
 		push.call(0.1, {"type": "tool", "name": "animate", "args": {"kind": "dance"}})
 	else:
-		player_says.call("Hey! Need any help today?")
+		player_says.call("Hey! What's the tallest tree in the world?")
+		push.call(0.3, {"type": "lookup", "query": "tallest tree in the world", "status": "start"})
+		push.call(1.8, {"type": "lookup", "query": "tallest tree in the world", "status": "done", "summary": "Hyperion, a coast redwood in California, is about 116 m tall: the tallest known living tree."})
+		say.call("Ooh, I looked it up! A redwood called Hyperion, 116 meters tall!")
+		push.call(0.1, {"type": "tool", "name": "give_item", "args": {"item": "seed_tomato", "count": 2}})
 		say.call("Actually yes! Could you bring me 3 %s? I'll pay you in bells!" % item)
 		push.call(0.1, {"type": "tool", "name": "emote", "args": {"kind": "idea"}})
 		push.call(0.1, {"type": "tool", "name": "give_quest", "args": {"item": item, "count": 3, "title": "3 %s for %s" % [item, npc.capitalize()], "reward": 300}})

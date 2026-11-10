@@ -94,7 +94,7 @@ const EMOTES := {
 	"happy": ["^ ^", Color("#ffb703")], "love": ["<3", Color("#ef476f")], "laugh": ["haha", Color("#fb8500")],
 	"surprised": ["!!", Color("#e63946")], "question": ["?", Color("#4361ee")], "angry": ["grr", Color("#d62828")],
 	"sad": ["T T", Color("#4895ef")], "idea": ["!", Color("#f4a261")], "music": ["la~", Color("#9b5de5")],
-	"sleepy": ["zzz", Color("#577590")],
+	"sleepy": ["zzz", Color("#577590")], "think": ["...", Color("#8d6e63")], "book": ["?!", Color("#2a9d8f")],
 }
 
 func emote(kind: String) -> void:
@@ -103,7 +103,7 @@ func emote(kind: String) -> void:
 	var e: Array = EMOTES.get(kind, EMOTES["happy"])
 	var b := Node2D.new()
 	b.z_index = 45
-	b.position = Vector2(10, -_head_y() - 10)
+	b.position = Vector2(12, -_head_y() - 14)
 	var panel := Panel.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color.WHITE

@@ -25,10 +25,16 @@ const ITEMS := {
 	"wood": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(80, 32, 16, 16)},
 	"flower": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(112, 48, 16, 16)},
 	"mushroom": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(96, 0, 16, 16)},
+	# round 2 (farming)
+	"seed_wheat": {"path": S + "Objects/Basic Plants.png", "region": Rect2(0, 0, 16, 16)},
+	"seed_tomato": {"path": S + "Objects/Basic Plants.png", "region": Rect2(0, 16, 16, 16)},
+	"sapling": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(96, 16, 16, 16)},
+	"plant_tree": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(0, 0, 16, 32)},
 }
 
 const ITEM_NAMES := {"egg": "egg", "milk": "milk", "wheat": "wheat", "tomato": "tomato",
-	"pumpkin": "pumpkin", "wood": "wood", "flower": "flower", "mushroom": "mushroom"}
+	"pumpkin": "pumpkin", "wood": "wood", "flower": "flower", "mushroom": "mushroom",
+	"seed_wheat": "wheat seeds", "seed_tomato": "tomato seeds", "sapling": "sapling", "plant_tree": "trees planted"}
 
 const BIOM := S + "Objects/Basic Grass Biom things 1.png"
 const PROPS := {
@@ -143,6 +149,9 @@ static func world_font() -> Font:
 		var base: FontFile = load("res://fonts/Fredoka.ttf")
 		var f: FontFile = base.duplicate()
 		f.multichannel_signed_distance_field = true
-		f.msdf_pixel_range = 8
+		f.msdf_pixel_range = 16
 		_font = f
 	return _font
+
+static func item_name(id: String) -> String:
+	return ITEM_NAMES.get(id, id.replace("_", " "))

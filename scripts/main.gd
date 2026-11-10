@@ -54,6 +54,7 @@ func _ready() -> void:
 	Hotline.speaking.connect(func(n, on): if n == talking: dialogue.on_speaking(on))
 	Hotline.volume.connect(func(l): dialogue.on_volume(l))
 	Hotline.tool.connect(_on_tool)
+	Hotline.lookup.connect(_on_lookup)
 	Sfx.music_on()
 	if OS.get_environment("HV_SHOT") != "":
 		_shot_tour()
@@ -351,6 +352,8 @@ func _unhandled_input(e: InputEvent) -> void:
 			_hang_up()
 
 func _try_talk() -> void:
+	if talking != "":
+		return
 	var best := ""
 	var bd := TALK_DIST
 	for id in npcs:
@@ -400,8 +403,8 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 			if npc: npc.animate(str(args.get("kind", "jump")))
 		"give_quest":
 			var item := str(args.get("item", "egg"))
-			if not item in GameState.ITEMS:
-				Hotline.inform("Unknown item '%s'. Valid items: %s" % [item, ", ".join(GameState.ITEMS)])
+			if not Art.ITEMS.has(item):
+				Hotline.inform("Unknown item '%s'. Valid items: %s, plant_tree" % [item, ", ".join(GameState.ITEMS)])
 				return
 			var q := GameState.add_quest(n, item, int(args.get("count", 3)), str(args.get("title", "Bring %s" % item)), int(args.get("reward", 200)))
 			hud.toast("New quest!  %s" % q["title"], Color("#ff9f43"))
@@ -423,6 +426,19 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 				Hotline.inform("Player only has %d/%d %s. The quest is not complete yet." % [int(r["have"]), int(r["need"]), item])
 				hud.toast("Not enough %s yet  (%d/%d)" % [item, int(r["have"]), int(r["need"])], Color("#e07a5f"))
 				Sfx.play("error")
+		"give_item":
+			var item := str(args.get("item", ""))
+			var cnt := clampi(int(args.get("count", 1)), 1, 20)
+			if not Art.ITEMS.has(item) or item == "plant_tree":
+				Hotline.inform("Can't give '%s': unknown item." % item)
+				return
+			GameState.add_item(item, cnt)
+			hud.toast("Got %d %s!" % [cnt, Art.item_name(item)], Color("#7bc96f"))
+			Sfx.play("pickup", 0.05, -2.0)
+			if npc:
+				Fx.burst(world, npc.position + Vector2(0, -14), "sparkle")
+				Fx.float_text(world, player.position + Vector2(0, -18), "+%d %s" % [cnt, Art.item_name(item)])
+			Hotline.inform("Player received %d %s and now has %d." % [cnt, item, GameState.count(item)])
 		"gift":
 			var b := int(args.get("bells", 0))
 			if b > 0:
@@ -433,6 +449,23 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 			await get_tree().create_timer(1.2).timeout
 			if talking == n:
 				_hang_up()
+
+func _on_lookup(n: String, query: String, st: String, summary: String) -> void:
+	var npc = npcs.get(n)
+	match st:
+		"start":
+			if npc: npc.emote("book")
+			dialogue.show_lookup(Art.NPC_NAMES.get(n, n), query)
+			Sfx.play("talk", 0.1, -8.0)
+		"done":
+			if npc:
+				npc.emote("idea")
+				Fx.burst(world, npc.position + Vector2(0, -20), "sparkle")
+			dialogue.show_learned(Art.NPC_NAMES.get(n, n), query, summary)
+			Sfx.play("quest", 0.05, -6.0)
+		_:
+			if npc: npc.emote("sad")
+			dialogue.lookup_failed(Art.NPC_NAMES.get(n, n))
 
 func _on_picked(item: String, pos: Vector2) -> void:
 	GameState.add_item(item, 1)
@@ -464,7 +497,11 @@ func _shot_tour() -> void:
 	_try_talk()
 	await get_tree().create_timer(3.2).timeout
 	await _shot("3_dialogue")
-	await get_tree().create_timer(5.5).timeout
+	await get_tree().create_timer(2.6).timeout
+	await _shot("3b_lookup")
+	await get_tree().create_timer(2.4).timeout
+	await _shot("3c_learned")
+	await get_tree().create_timer(6.5).timeout
 	await _shot("4_quest")
 	await get_tree().create_timer(5.0).timeout
 	GameState.add_item("milk", 3)

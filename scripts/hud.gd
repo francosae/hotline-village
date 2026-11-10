@@ -118,7 +118,11 @@ func refresh_pocket() -> void:
 	for c in pocket.get_children():
 		c.queue_free()
 	var shown := 0
-	for item in GameState.ITEMS:
+	var order: Array = GameState.ITEMS.duplicate()
+	for k in GameState.inventory.keys():
+		if not k in order:
+			order.append(k)
+	for item in order:
 		var n := GameState.count(item)
 		if n <= 0:
 			continue
@@ -161,6 +165,8 @@ func refresh_quests() -> void:
 		v.add_child(UiKit.label("for %s  |  %d bells" % [Art.NPC_NAMES.get(q["npc"], q["npc"]), int(q["reward"])], 14, Color("#a08060")))
 		row.add_child(v)
 		var have := mini(GameState.count(q["item"]), int(q["count"]))
+		if q.has("progress"):
+			have = mini(int(q["progress"]), int(q["count"]))
 		var prog := UiKit.label("%d/%d" % [have, int(q["count"])], 22, Color("#3aa35b") if have >= int(q["count"]) else UiKit.BROWN)
 		row.add_child(prog)
 		quest_list.add_child(row)
