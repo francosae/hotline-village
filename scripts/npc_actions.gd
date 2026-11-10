@@ -35,7 +35,7 @@ func _ready() -> void:
 	main = farm.get_parent()
 	Hotline.tool.connect(_on_tool)
 	card_layer = CanvasLayer.new()
-	card_layer.layer = 6
+	card_layer.layer = 11   # above the dialogue box (layer 10)
 	add_child(card_layer)
 	if OS.get_environment("HV_R3_TEST") != "":
 		_test.call_deferred()
@@ -212,13 +212,8 @@ func show_lesson(title: String, steps: Array, fact: String) -> void:
 	sb.content_margin_top = 34
 	sb.content_margin_bottom = 22
 	card.add_theme_stylebox_override("panel", sb)
-	card.anchor_left = 0.5
-	card.anchor_right = 0.5
-	card.anchor_top = 0.5
-	card.anchor_bottom = 0.5
-	card.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	card.offset_top = -40
+	card.position = Vector2(-520, 128)   # left side, under the bells pill (tag pokes up to y~90)
+	card.scale = Vector2(0.85, 0.85)
 	card.custom_minimum_size = Vector2(440, 0)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
@@ -268,15 +263,14 @@ func show_lesson(title: String, steps: Array, fact: String) -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(tag)
 	card.add_child(holder)
-	card.resized.connect(func(): card.pivot_offset = card.size * 0.5)
-	UiKit.pop_in(card, 0.7)
+	var slide := card.create_tween()
+	slide.tween_property(card, "position:x", 40.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	Sfx.play("quest", 0.05, -4.0)
 	var c := card
 	get_tree().create_timer(12.0).timeout.connect(func():
 		if is_instance_valid(c):
 			var t := c.create_tween()
-			t.tween_property(c, "scale", Vector2(0.8, 0.8), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-			t.parallel().tween_property(c, "modulate:a", 0.0, 0.18)
+			t.tween_property(c, "position:x", -520.0, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 			t.tween_callback(c.queue_free))
 
 # ---------------- automated check (HV_R3_TEST=1 HV_FARM_FAST=1) ----------------
