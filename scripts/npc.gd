@@ -139,28 +139,47 @@ func emote(kind: String) -> void:
 	b.position = Vector2(12, -_head_y() - 14)
 	var panel := Panel.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color.WHITE
+	sb.bg_color = UiKit.CREAM
 	sb.set_corner_radius_all(40)
+	sb.border_color = Color("#ead9b8")
+	sb.set_border_width_all(5)
 	sb.shadow_color = Color(0, 0, 0, 0.18)
 	sb.shadow_size = 6
 	sb.shadow_offset = Vector2(0, 4)
 	panel.add_theme_stylebox_override("panel", sb)
-	var l := Label.new()
-	l.text = e[0]
-	l.add_theme_font_override("font", Art.world_font())
-	l.add_theme_font_size_override("font_size", 52)
-	l.add_theme_color_override("font_color", e[1])
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var w := maxf(l.get_minimum_size().x + 40, 90)
-	panel.size = Vector2(w, 80)
-	panel.position = Vector2(-w * 0.5, -80)
-	l.size = panel.size
-	panel.add_child(l)
 	var holder := Node2D.new()
 	holder.scale = Vector2(0.2, 0.2)
 	holder.add_child(panel)
 	b.add_child(holder)
+	var ic: Array = Art.EMOTE_ICONS.get(kind, ["face_smile", Color.WHITE])
+	if not Art.UI_ICONS.has(ic[0]):
+		ic = ["star", Color.WHITE]
+	if true:  # always a single pixel icon; never text (text could overflow the bubble)
+		panel.size = Vector2(100, 90)
+		panel.position = Vector2(-50, -90)
+		var spr := Sprite2D.new()
+		spr.texture = Art.ui_icon(ic[0])
+		spr.modulate = ic[1]
+		spr.position = Vector2(0, -9)
+		b.add_child(spr)
+		var wt := spr.create_tween().set_loops()
+		wt.tween_property(spr, "rotation", 0.18, 0.18).set_trans(Tween.TRANS_SINE)
+		wt.tween_property(spr, "rotation", -0.18, 0.36).set_trans(Tween.TRANS_SINE)
+		wt.tween_property(spr, "rotation", 0.0, 0.18).set_trans(Tween.TRANS_SINE)
+		wt.tween_interval(0.3)
+	else:
+		var l := Label.new()
+		l.text = e[0]
+		l.add_theme_font_override("font", Art.world_font())
+		l.add_theme_font_size_override("font_size", 52)
+		l.add_theme_color_override("font_color", e[1])
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var w := maxf(l.get_minimum_size().x + 40, 90)
+		panel.size = Vector2(w, 80)
+		panel.position = Vector2(-w * 0.5, -80)
+		l.size = panel.size
+		panel.add_child(l)
 	add_child(b)
 	_bubble = b
 	b.scale = Vector2.ZERO

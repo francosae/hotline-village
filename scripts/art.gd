@@ -13,7 +13,7 @@ const SHEETS := {
 	"clucky": {"path": S + "Characters/Free Chicken Sprites.png", "frame": Vector2i(16, 16),
 		"idle_row": 0, "idle_count": 4, "fps": 5.0, "scale": 1.5, "modulate": Color(1, 1, 1)},
 	"juniper": {"path": S + "Characters/Basic Charakter Spritesheet.png", "frame": Vector2i(48, 48),
-		"idle_row": 0, "idle_count": 2, "fps": 3.0, "scale": 1.0, "modulate": Color(0.75, 1.0, 0.8)},
+		"idle_row": 0, "idle_count": 2, "fps": 3.0, "scale": 1.0, "modulate": Color(1.0, 0.86, 0.84)},
 }
 
 const ITEMS := {
@@ -43,7 +43,18 @@ const ITEM_WORLD := {
 const UI_SHEET := S + "ui/Sprite sheet for Basic Pack.png"
 const UI_ICONS := {
 	"coin": Rect2(627, 98, 9, 12), "star": Rect2(529, 97, 14, 13), "heart": Rect2(579, 98, 11, 12),
+	"face_grin": Rect2(356, 148, 9, 9), "face_smile": Rect2(372, 148, 9, 9), "face_neutral": Rect2(388, 148, 9, 9),
+	"face_sad": Rect2(404, 148, 9, 9), "face_angry": Rect2(420, 148, 9, 9),
+	"bang": Rect2(614, 209, 4, 14), "question": Rect2(674, 195, 12, 12),
 }
+# emote kind -> [ui icon id, modulate]
+const EMOTE_ICONS := {
+	"happy": ["face_grin", Color.WHITE], "laugh": ["face_smile", Color.WHITE], "love": ["heart", Color.WHITE],
+	"surprised": ["bang", Color("#f08a3c")], "question": ["question", Color("#5b8bd9")], "angry": ["face_angry", Color.WHITE],
+	"sad": ["face_sad", Color.WHITE], "idea": ["star", Color.WHITE], "music": ["star", Color.WHITE],
+	"sleepy": ["face_neutral", Color.WHITE], "think": ["question", Color("#a08060")], "book": ["bang", Color("#2a9d8f")],
+}
+const DOOR := {"path": S + "Tilesets/Doors.png", "region": Rect2(0, 16, 16, 16)}
 const FONT_BOLD := "res://fonts/MPlusRounded1c-ExtraBold.ttf"
 const FONT_BODY := "res://fonts/MPlusRounded1c-Bold.ttf"
 

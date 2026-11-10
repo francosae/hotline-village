@@ -169,6 +169,11 @@ func _house(base: Vector2) -> void:
 	r.centered = false
 	r.position = Vector2(-32, -72)
 	h.add_child(r)
+	var door := Sprite2D.new()
+	door.texture = Art.atlas(Art.DOOR["path"], Art.DOOR["region"])
+	door.centered = false
+	door.position = Vector2(-8, -16)
+	h.add_child(door)
 	_solid(base + Vector2(0, -14), Vector2(64, 28))
 
 func _build_houses() -> void:
@@ -502,6 +507,9 @@ func _shot_tour() -> void:
 	_try_talk()
 	await get_tree().create_timer(3.2).timeout
 	await _shot("3_dialogue")
+	npcs["maple"].emote("love")
+	await get_tree().create_timer(0.5).timeout
+	await _shot("3a_emote")
 	await get_tree().create_timer(2.6).timeout
 	await _shot("3b_lookup")
 	await get_tree().create_timer(2.4).timeout
