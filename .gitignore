@@ -5,3 +5,6 @@ _src/
 .env
 web/local-config.js
 build/web/local-config.js
+deploy/public/
+deploy/.vercel/
+.vercel/
