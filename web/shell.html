@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>$GODOT_PROJECT_NAME</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="preconnect" href="https://esm.sh" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+		<style>
+:root {
+	--cream: #fff6e0;
+	--cream-2: #f6e7c1;
+	--leaf: #6fb05a;
+	--leaf-dark: #3f7a3a;
+	--bark: #6b4a2f;
+}
+
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+body {
+	color: var(--bark);
+	background-color: var(--cream);
+	overflow: hidden;
+	touch-action: none;
+	font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+}
+
+#canvas {
+	display: block;
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+
+#status {
+	background: radial-gradient(circle at 50% 35%, var(--cream) 0%, var(--cream-2) 100%);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+	gap: 1.2rem;
+}
+
+/* Godot's splash image is kept in the DOM (placeholders) but our cozy title replaces it. */
+#status-splash {
+	display: none;
+}
+
+#hv-title {
+	position: relative;
+	text-align: center;
+	z-index: 1;
+}
+
+#hv-title h1 {
+	margin: 0;
+	font-weight: 700;
+	font-size: clamp(2.2rem, 6vw, 4rem);
+	color: var(--leaf-dark);
+	letter-spacing: 0.02em;
+	text-shadow: 0 4px 0 #fff, 0 6px 0 rgba(63, 122, 58, 0.18);
+}
+
+#hv-title p {
+	margin: 0.4rem 0 0;
+	font-size: 1.1rem;
+	opacity: 0.8;
+}
+
+#hv-phone {
+	font-size: 3rem;
+	display: inline-block;
+	animation: hv-ring 1.2s ease-in-out infinite;
+}
+
+@keyframes hv-ring {
+	0%, 60%, 100% { transform: rotate(0deg); }
+	10%, 30%, 50% { transform: rotate(-12deg); }
+	20%, 40% { transform: rotate(12deg); }
+}
+
+#status-progress {
+	position: relative;
+	bottom: auto;
+	width: min(60vw, 420px);
+	height: 18px;
+	margin: 0 auto;
+	appearance: none;
+	-webkit-appearance: none;
+	border: 3px solid var(--leaf-dark);
+	border-radius: 999px;
+	background: #fff;
+	overflow: hidden;
+}
+
+#status-progress::-webkit-progress-bar { background: #fff; border-radius: 999px; }
+#status-progress::-webkit-progress-value { background: var(--leaf); border-radius: 999px; }
+#status-progress::-moz-progress-bar { background: var(--leaf); border-radius: 999px; }
+
+#status-progress, #status-notice {
+	display: none;
+}
+
+#status-notice {
+	background-color: #fff;
+	border-radius: 1rem;
+	border: 3px solid #d9826b;
+	color: var(--bark);
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+}
+
+/* Vapi key modal */
+#hv-key {
+	position: fixed;
+	inset: 0;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	background: rgba(107, 74, 47, 0.25);
+	z-index: 10;
+}
+
+#hv-key.open { display: flex; }
+
+#hv-key form {
+	background: var(--cream);
+	border: 4px solid var(--leaf-dark);
+	border-radius: 1.4rem;
+	padding: 1.4rem 1.6rem;
+	width: min(88vw, 380px);
+	box-shadow: 0 8px 0 rgba(63, 122, 58, 0.25);
+	text-align: center;
+}
+
+#hv-key h2 { margin: 0 0 0.3rem; color: var(--leaf-dark); font-weight: 700; }
+#hv-key p { margin: 0 0 0.9rem; font-size: 0.95rem; }
+
+#hv-key input {
+	width: 100%;
+	box-sizing: border-box;
+	font: inherit;
+	padding: 0.6rem 0.8rem;
+	border-radius: 999px;
+	border: 3px solid var(--cream-2);
+	background: #fff;
+	color: var(--bark);
+	outline: none;
+}
+
+#hv-key input:focus { border-color: var(--leaf); }
+
+#hv-key .row { display: flex; gap: 0.6rem; margin-top: 0.9rem; justify-content: center; }
+
+#hv-key button {
+	font: inherit;
+	font-weight: 600;
+	border: 0;
+	border-radius: 999px;
+	padding: 0.55rem 1.2rem;
+	cursor: pointer;
+	background: var(--leaf);
+	color: #fff;
+	box-shadow: 0 4px 0 var(--leaf-dark);
+}
+
+#hv-key button.ghost { background: var(--cream-2); color: var(--bark); box-shadow: 0 4px 0 #d8c290; }
+#hv-key button:active { transform: translateY(2px); box-shadow: none; }
+		</style>
+		$GODOT_HEAD_INCLUDE
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status">
+			<img id="status-splash" class="$GODOT_SPLASH_CLASSES" src="$GODOT_SPLASH" alt="">
+			<div id="hv-title">
+				<span id="hv-phone">☎️</span>
+				<h1>Hotline Village</h1>
+				<p>Walk up to a villager and just talk.</p>
+			</div>
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
+
+		<div id="hv-key">
+			<form id="hv-key-form" autocomplete="off">
+				<h2>Ring ring!</h2>
+				<p>Paste your Vapi <b>public</b> key so the villagers can pick up. It stays in this browser.</p>
+				<input id="hv-key-input" type="password" placeholder="Vapi public key" spellcheck="false">
+				<div class="row">
+					<button type="button" class="ghost" id="hv-key-later">Later</button>
+					<button type="submit">Save</button>
+				</div>
+			</form>
+		</div>
+
+		<script src="$GODOT_URL"></script>
+		<script type="module">
+// Load the voice bridge before the engine starts. In build/web it is copied next to
+// index.html; when serving the repo root it is found at ../../web/hotline.js.
+async function loadHotline() {
+	for (const url of ['./hotline.js', '../../web/hotline.js', '/web/hotline.js']) {
+		try {
+			await import(url);
+			if (window.hotline) return true;
+		} catch (err) {
+			console.warn('[shell] hotline.js not at', url, err && err.message);
+		}
+	}
+	console.error('[shell] hotline.js failed to load; voice disabled');
+	return false;
+}
+
+function setupKeyModal() {
+	const modal = document.getElementById('hv-key');
+	const input = document.getElementById('hv-key-input');
+	const form = document.getElementById('hv-key-form');
+	// Keep keys typed in the modal away from Godot's input handlers.
+	['keydown', 'keyup', 'keypress'].forEach((t) => modal.addEventListener(t, (e) => e.stopPropagation()));
+	form.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const k = input.value.trim();
+		if (!k) return;
+		window.hotline && window.hotline.setKey(k);
+		modal.classList.remove('open');
+		window.hotline && window.hotline.warmMic();
+	});
+	document.getElementById('hv-key-later').addEventListener('click', () => modal.classList.remove('open'));
+	window.hotlineAskKey = () => { modal.classList.add('open'); setTimeout(() => input.focus(), 0); };
+	if (window.hotline && !window.hotline.hasKey()) window.hotlineAskKey();
+}
+
+// Ask for the mic on the first click/tap so the first call doesn't wait on the prompt.
+function setupMicWarmup() {
+	const once = () => {
+		window.removeEventListener('pointerdown', once, true);
+		window.removeEventListener('keydown', once, true);
+		if (window.hotline && window.hotline.hasKey()) window.hotline.warmMic();
+	};
+	window.addEventListener('pointerdown', once, true);
+	window.addEventListener('keydown', once, true);
+}
+
+await loadHotline();
+setupKeyModal();
+setupMicWarmup();
+
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
+</html>
