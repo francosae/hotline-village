@@ -1,6 +1,12 @@
 extends CanvasLayer
 ## Animal Crossing style speech box driven by Hotline events.
 
+signal opened_changed(is_open: bool)
+var _final := false
+var _thinking := false
+var arrow: Label
+var dots: HBoxContainer
+
 var root: Control
 var box: PanelContainer
 var name_tag: PanelContainer
@@ -31,6 +37,7 @@ var _learned_tween: Tween
 
 func show_lookup(who: String, query: String) -> void:
 	_lookup_name = who
+	_thinking = true
 	lookup_pill.visible = true
 	lookup_label.text = "%s is looking it up..." % who
 	lookup_pill.reset_size()
@@ -98,12 +105,26 @@ func _ready() -> void:
 	portrait.size = Vector2(120, 120)
 	pframe.add_child(portrait)
 	hb.add_child(pframe)
-	text_label = UiKit.label("", 30, Color("#5b4636"))
+	var tv := VBoxContainer.new()
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.alignment = BoxContainer.ALIGNMENT_CENTER
+	text_label = UiKit.label("", 30, UiKit.BROWN)
+	text_label.add_theme_constant_override("line_spacing", 8)
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	text_label.custom_minimum_size = Vector2(560, 120)
-	hb.add_child(text_label)
+	text_label.custom_minimum_size = Vector2(560, 96)
+	tv.add_child(text_label)
+	dots = HBoxContainer.new()
+	dots.add_theme_constant_override("separation", 10)
+	for i in 3:
+		var d := Panel.new()
+		d.custom_minimum_size = Vector2(14, 14)
+		d.add_theme_stylebox_override("panel", UiKit.box(Color("#c9a77c"), 7, false))
+		dots.add_child(d)
+	dots.visible = false
+	tv.add_child(dots)
+	hb.add_child(tv)
 	# indicator (right side, inside box area)
 	indicator = Panel.new()
 	indicator.custom_minimum_size = Vector2(64, 64)
@@ -123,7 +144,7 @@ func _ready() -> void:
 	ns.content_margin_top = 4
 	ns.content_margin_bottom = 6
 	name_tag.add_theme_stylebox_override("panel", ns)
-	name_label = UiKit.label("Maple", 30, Color.WHITE)
+	name_label = UiKit.bold("Maple", 32, Color.WHITE)
 	name_tag.add_child(name_label)
 	name_tag.rotation = -0.07
 	root.add_child(name_tag)
@@ -171,12 +192,15 @@ func _ready() -> void:
 	root.add_child(learned)
 	hint = UiKit.label("Esc  hang up", 16, Color("#a08060"))
 	root.add_child(hint)
+	arrow = UiKit.bold("▼", 24, Color("#f39c3d"))
+	root.add_child(arrow)
 	_set_visible(false)
 
 func _set_visible(v: bool) -> void:
 	box.visible = v
 	name_tag.visible = v
 	hint.visible = v
+	arrow.visible = false
 	player_bubble.visible = v and player_label.text != ""
 
 func _layout() -> void:
@@ -184,7 +208,13 @@ func _layout() -> void:
 	var bx := vs.x * 0.5 - 470
 	var by := vs.y - 230
 	name_tag.position = Vector2(bx + 40, by - 34)
-	hint.position = Vector2(bx + 940 - 130, vs.y - 52)
+	hint.position = Vector2(bx + 60, vs.y - 50)
+	arrow.visible = open and _final and int(_shown) >= _target_text.length() and _target_text != "" and not _connecting
+	arrow.position = Vector2(bx + 940 - 150, vs.y - 62 + absf(sin(_t * 5.0)) * -6.0)
+	dots.visible = open and (_thinking or (_connecting and _target_text == ""))
+	if dots.visible:
+		for i in 3:
+			dots.get_child(i).modulate.a = 0.35 + 0.65 * maxf(0.0, sin(_t * 6.0 - i * 0.9))
 	var pw := minf(player_label.get_minimum_size().x + 40, 520)
 	player_label.custom_minimum_size.x = minf(maxf(player_label.get_minimum_size().x, 120), 480)
 	player_bubble.position = Vector2(bx + 940 - player_bubble.size.x - 30, by - player_bubble.size.y - 14)
@@ -208,7 +238,10 @@ func open_for(id: String) -> void:
 	text_label.text = ""
 	player_label.text = ""
 	_connecting = true
+	_final = false
+	_thinking = false
 	_set_visible(true)
+	opened_changed.emit(true)
 	box.pivot_offset = Vector2(470, 200)
 	UiKit.pop_in(box, 0.85)
 	UiKit.pop_in(name_tag, 0.5)
@@ -219,6 +252,7 @@ func close() -> void:
 	if not open:
 		return
 	open = false
+	opened_changed.emit(false)
 	lookup_pill.visible = false
 	_lookup_name = ""
 	Sfx.play("close")
@@ -246,11 +280,18 @@ func on_status(st: String, msg: String) -> void:
 			_target_text = "(The line crackles...) " + msg
 			_shown = 0.0
 
-func on_speech(who: String, text: String, _final: bool) -> void:
+var _final_arg := false
+func _final_flag(_old: bool) -> bool:
+	return _final_arg
+
+func on_speech(who: String, text: String, is_final: bool) -> void:
+	_final_arg = is_final
 	if not open:
 		return
 	_connecting = false
 	if who == "npc":
+		_final = _final_flag(_final)
+		_thinking = false
 		# a new utterance replaces the old; partials grow in place
 		if not text.begins_with(_target_text.substr(0, mini(8, _target_text.length()))) or text.length() < _target_text.length():
 			_shown = 0.0
@@ -258,6 +299,8 @@ func on_speech(who: String, text: String, _final: bool) -> void:
 	else:
 		player_label.text = text
 		player_bubble.visible = text != ""
+		if _final_arg:
+			_thinking = true
 		if text != "":
 			player_bubble.reset_size()
 
@@ -281,9 +324,8 @@ func _process(delta: float) -> void:
 	elif text_label.text != _target_text:
 		text_label.text = _target_text
 	if _connecting:
-		var dots := ".".repeat(1 + int(_t * 3.0) % 3)
 		if _target_text == "":
-			text_label.text = "Ring ring" + dots
+			text_label.text = "Calling %s" % Art.NPC_NAMES.get(npc, npc)
 		indicator_label.text = "connecting"
 		_style_indicator(Color("#c9b79c"), 1.0 + 0.08 * sin(_t * 6.0))
 	elif _npc_speaking:

@@ -22,16 +22,8 @@ func _ready() -> void:
 	bells_pill.position = Vector2(24, 20)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 10)
-	var coin := Panel.new()
-	coin.custom_minimum_size = Vector2(34, 34)
-	coin.add_theme_stylebox_override("panel", UiKit.box(Color("#ffc94a"), 17, false, 4, Color("#e09b1a")))
-	var cl := UiKit.label("B", 18, Color("#9a5b00"))
-	cl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	cl.set_anchors_preset(Control.PRESET_FULL_RECT)
-	coin.add_child(cl)
-	hb.add_child(coin)
-	bells_label = UiKit.label("0", 28)
+	hb.add_child(UiKit.icon(Art.ui_icon("coin"), 36))
+	bells_label = UiKit.bold("0", 30)
 	bells_label.custom_minimum_size.x = 80
 	hb.add_child(bells_label)
 	bells_pill.add_child(hb)
@@ -52,7 +44,11 @@ func _ready() -> void:
 	quest_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	var qv := VBoxContainer.new()
 	qv.add_theme_constant_override("separation", 6)
-	var qt := UiKit.label("Quests", 24, Color("#d07a2a"))
+	var qh := HBoxContainer.new()
+	qh.add_theme_constant_override("separation", 8)
+	qh.add_child(UiKit.icon(Art.ui_icon("star"), 26))
+	qh.add_child(UiKit.bold("Quests", 26, Color("#d07a2a")))
+	var qt := qh
 	qv.add_child(qt)
 	quest_list = VBoxContainer.new()
 	quest_list.add_theme_constant_override("separation", 6)
@@ -60,7 +56,7 @@ func _ready() -> void:
 	quest_card.add_child(qv)
 	root.add_child(quest_card)
 	# pocket
-	var pocket_bg := PanelContainer.new()
+	pocket_bg = PanelContainer.new()
 	var ps := UiKit.box(Color(1.0, 0.97, 0.9, 0.92), 40)
 	ps.content_margin_left = 16
 	ps.content_margin_right = 16
@@ -90,6 +86,18 @@ func _ready() -> void:
 	bells_label.text = str(_shown_bells)
 	refresh_pocket()
 	refresh_quests()
+
+var _slide: Tween
+var pocket_bg: PanelContainer
+func slide_out(out: bool) -> void:
+	if _slide:
+		_slide.kill()
+	_slide = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC)
+	var e := Tween.EASE_IN if out else Tween.EASE_OUT
+	_slide.tween_property(bells_pill, "position:y", -110.0 if out else 20.0, 0.3).set_ease(e)
+	_slide.tween_property(quest_card, "offset_top", -400.0 if out else 20.0, 0.3).set_ease(e)
+	_slide.tween_property(pocket_bg, "offset_top", 40.0 if out else -96.0, 0.3).set_ease(e)
+	_slide.tween_property(pocket_bg, "offset_bottom", 116.0 if out else -20.0, 0.3).set_ease(e)
 
 func _on_bells(v: int) -> void:
 	if _bells_tween:
@@ -139,11 +147,16 @@ func _slot(item: String, n: int) -> Control:
 		var ic := _icon(item, 40)
 		ic.position = Vector2(8, 8)
 		p.add_child(ic)
-		var l := UiKit.label(str(n), 18, Color.WHITE)
-		l.add_theme_color_override("font_outline_color", UiKit.BROWN)
-		l.add_theme_constant_override("outline_size", 6)
-		l.position = Vector2(38, 30)
-		p.add_child(l)
+		var badge := PanelContainer.new()
+		var bs := UiKit.box(Color("#f39c3d"), 13, false, 3, Color.WHITE)
+		bs.content_margin_left = 7
+		bs.content_margin_right = 7
+		bs.content_margin_top = 0
+		bs.content_margin_bottom = 1
+		badge.add_theme_stylebox_override("panel", bs)
+		badge.add_child(UiKit.bold(str(n), 16, Color.WHITE))
+		badge.position = Vector2(34, 32)
+		p.add_child(badge)
 	return p
 
 func refresh_quests() -> void:
@@ -158,7 +171,7 @@ func refresh_quests() -> void:
 		row.add_child(_icon(q["item"], 32))
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", -4)
-		var title := UiKit.label(str(q["title"]), 18)
+		var title := UiKit.bold(str(q["title"]), 18)
 		title.custom_minimum_size.x = 170
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(title)
@@ -167,27 +180,58 @@ func refresh_quests() -> void:
 		var have := mini(GameState.count(q["item"]), int(q["count"]))
 		if q.has("progress"):
 			have = mini(int(q["progress"]), int(q["count"]))
-		var prog := UiKit.label("%d/%d" % [have, int(q["count"])], 22, Color("#3aa35b") if have >= int(q["count"]) else UiKit.BROWN)
-		row.add_child(prog)
+		var pv := VBoxContainer.new()
+		pv.add_theme_constant_override("separation", 2)
+		pv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var full := have >= int(q["count"])
+		var prog := UiKit.bold("%d/%d" % [have, int(q["count"])], 22, Color("#3aa35b") if full else UiKit.BROWN)
+		prog.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		pv.add_child(prog)
+		var pips := HBoxContainer.new()
+		pips.add_theme_constant_override("separation", 3)
+		pips.alignment = BoxContainer.ALIGNMENT_END
+		for i in int(q["count"]):
+			var pip := Panel.new()
+			pip.custom_minimum_size = Vector2(9, 9)
+			pip.add_theme_stylebox_override("panel", UiKit.box(Color("#7cc96f") if i < have else Color("#ead9b8"), 5, false))
+			pips.add_child(pip)
+		pv.add_child(pips)
+		row.add_child(pv)
 		quest_list.add_child(row)
 
-func toast(text: String, color := Color("#ff8fab")) -> void:
+var _toast_y := 0
+func toast(text: String, color := Color("#ff8fab"), icon: Texture2D = null) -> void:
 	var p := PanelContainer.new()
-	var sb := UiKit.box(color, 30)
-	sb.content_margin_left = 30
+	var sb := UiKit.box(UiKit.CREAM, 32, true, 4, color)
+	sb.content_margin_left = 22
 	sb.content_margin_right = 30
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 10
 	p.add_theme_stylebox_override("panel", sb)
-	var l := UiKit.label(text, 30, Color.WHITE)
-	l.add_theme_color_override("font_outline_color", color.darkened(0.4))
-	l.add_theme_constant_override("outline_size", 8)
-	p.add_child(l)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	var dot := PanelContainer.new()
+	var ds := UiKit.box(color, 22, false)
+	ds.content_margin_left = 6
+	ds.content_margin_right = 6
+	ds.content_margin_top = 6
+	ds.content_margin_bottom = 6
+	dot.add_theme_stylebox_override("panel", ds)
+	dot.add_child(UiKit.icon(icon if icon else Art.ui_icon("star"), 30))
+	hb.add_child(dot)
+	var l := UiKit.bold(text, 28, color.darkened(0.35))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(l)
+	p.add_child(hb)
 	toast_holder.add_child(p)
 	await get_tree().process_frame
 	var vw := get_viewport().get_visible_rect().size.x
 	p.position = Vector2((vw - p.size.x) * 0.5, -80)
 	p.pivot_offset = p.size * 0.5
 	var t := p.create_tween()
-	t.tween_property(p, "position:y", 96.0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_interval(1.8)
-	t.tween_property(p, "position:y", -80.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	var slot := _toast_y
+	_toast_y += 1
+	t.tween_property(p, "position:y", 110.0 + 76.0 * (slot % 3), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func(): _toast_y = maxi(0, _toast_y - 1)).set_delay(1.8)
+	t.tween_property(p, "position:y", -100.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	t.tween_callback(p.queue_free)

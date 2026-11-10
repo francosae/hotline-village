@@ -66,7 +66,7 @@ void fragment(){
 		t.tween_property(tr, "scale", Vector2(1.06, 0.94), 0.5).set_trans(Tween.TRANS_SINE)
 		t.tween_property(tr, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_SINE)
 	add_child(row)
-	logo = UiKit.label("Hotline Village", 112, Color("#fff8e7"))
+	logo = UiKit.bold("Hotline Village", 112, Color("#fff8e7"))
 	logo.add_theme_color_override("font_outline_color", Color("#6b4a32"))
 	logo.add_theme_constant_override("outline_size", 28)
 	logo.add_theme_color_override("font_shadow_color", Color(0.3, 0.2, 0.1, 0.35))
@@ -85,7 +85,7 @@ void fragment(){
 	sub.anchor_right = 1
 	sub.position.y = 255
 	add_child(sub)
-	press = UiKit.label("Press Enter", 40, Color("#ffffff"))
+	press = UiKit.bold("Press Enter", 40, Color("#ffffff"))
 	press.add_theme_color_override("font_outline_color", Color("#e07a5f"))
 	press.add_theme_constant_override("outline_size", 14)
 	press.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

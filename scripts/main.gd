@@ -49,6 +49,11 @@ func _ready() -> void:
 	dialogue = CanvasLayer.new()
 	dialogue.set_script(DialogueScript)
 	add_child(dialogue)
+	dialogue.opened_changed.connect(hud.slide_out)
+	var farm := Node2D.new()
+	farm.set_script(preload("res://scripts/farm.gd"))
+	farm.name = "Farm"
+	add_child(farm)
 	Hotline.status.connect(_on_status)
 	Hotline.speech.connect(func(n, who, text, fin): if n == talking: dialogue.on_speech(who, text, fin))
 	Hotline.speaking.connect(func(n, on): if n == talking: dialogue.on_speaking(on))
@@ -407,7 +412,7 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 				Hotline.inform("Unknown item '%s'. Valid items: %s, plant_tree" % [item, ", ".join(GameState.ITEMS)])
 				return
 			var q := GameState.add_quest(n, item, int(args.get("count", 3)), str(args.get("title", "Bring %s" % item)), int(args.get("reward", 200)))
-			hud.toast("New quest!  %s" % q["title"], Color("#ff9f43"))
+			hud.toast("New quest!  %s" % q["title"], Color("#f39c3d"), Art.item_icon(item))
 			Sfx.play("quest")
 			if npc: Fx.burst(world, npc.position + Vector2(0, -20), "sparkle")
 		"complete_quest":
@@ -415,7 +420,7 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 			var r := GameState.try_complete(n, item)
 			if r["ok"]:
 				var q: Dictionary = r["quest"]
-				hud.toast("Quest complete!  +%d bells" % int(q["reward"]), Color("#3aa35b"))
+				hud.toast("Quest complete!  +%d bells" % int(q["reward"]), Color("#4caf6a"), Art.ui_icon("heart"))
 				Sfx.play("jingle", 0.0, -2.0)
 				if npc: Fx.burst(world, npc.position + Vector2(0, -16), "confetti")
 				Hotline.inform("Quest complete: player handed over %d %s and received %d bells. They now have %d bells." % [int(q["count"]), item, int(q["reward"]), GameState.bells])
@@ -424,7 +429,7 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 				Sfx.play("error")
 			else:
 				Hotline.inform("Player only has %d/%d %s. The quest is not complete yet." % [int(r["have"]), int(r["need"]), item])
-				hud.toast("Not enough %s yet  (%d/%d)" % [item, int(r["have"]), int(r["need"])], Color("#e07a5f"))
+				hud.toast("Not enough %s yet  (%d/%d)" % [item, int(r["have"]), int(r["need"])], Color("#e07a5f"), Art.item_icon(item))
 				Sfx.play("error")
 		"give_item":
 			var item := str(args.get("item", ""))
@@ -433,7 +438,7 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 				Hotline.inform("Can't give '%s': unknown item." % item)
 				return
 			GameState.add_item(item, cnt)
-			hud.toast("Got %d %s!" % [cnt, Art.item_name(item)], Color("#7bc96f"))
+			hud.toast("Got %d %s!" % [cnt, Art.item_name(item)], Color("#5fb35a"), Art.item_icon(item))
 			Sfx.play("pickup", 0.05, -2.0)
 			if npc:
 				Fx.burst(world, npc.position + Vector2(0, -14), "sparkle")
@@ -443,7 +448,7 @@ func _on_tool(n: String, tname: String, args: Dictionary) -> void:
 			var b := int(args.get("bells", 0))
 			if b > 0:
 				GameState.add_bells(b)
-				hud.toast("+%d bells!" % b, Color("#f4b400"))
+				hud.toast("+%d bells!" % b, Color("#e0a020"), Art.ui_icon("coin"))
 				if npc: Fx.burst(world, npc.position + Vector2(0, -16), "sparkle")
 		"end_conversation":
 			await get_tree().create_timer(1.2).timeout
@@ -476,7 +481,7 @@ func _on_picked(item: String, pos: Vector2) -> void:
 		if q["item"] == item:
 			var have := GameState.count(item)
 			if have <= int(q["count"]) and have == int(q["count"]):
-				hud.toast("Got all %d %s! Go see %s" % [int(q["count"]), item, Art.NPC_NAMES.get(q["npc"], q["npc"])], Color("#3aa35b"))
+				hud.toast("Got all %d %s! Go see %s" % [int(q["count"]), item, Art.NPC_NAMES.get(q["npc"], q["npc"])], Color("#4caf6a"), Art.item_icon(item))
 			if Hotline.in_call:
 				Hotline.inform("Player picked up a %s and now has %d/%d %s for the quest '%s'." % [item, mini(have, int(q["count"])), int(q["count"]), item, q["title"]])
 			break

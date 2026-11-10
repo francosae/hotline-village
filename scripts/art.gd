@@ -32,6 +32,21 @@ const ITEMS := {
 	"plant_tree": {"path": S + "Objects/Basic Grass Biom things 1.png", "region": Rect2(0, 0, 16, 32)},
 }
 
+# In-world look of collectibles (no white icon outline, sits on the pixel grid)
+const ITEM_WORLD := {
+	"egg": {"path": S + "Characters/Egg_And_Nest.png", "region": Rect2(32, 0, 16, 16)},
+	"wheat": {"path": S + "Objects/Basic Plants.png", "region": Rect2(64, 0, 16, 16)},
+	"tomato": {"path": S + "Objects/Basic Plants.png", "region": Rect2(64, 16, 16, 16), "modulate": Color(1.3, 0.75, 0.7)},
+	"pumpkin": {"path": S + "Objects/Basic Plants.png", "region": Rect2(64, 16, 16, 16), "modulate": Color(1.5, 1.05, 0.5)},
+}
+
+const UI_SHEET := S + "ui/Sprite sheet for Basic Pack.png"
+const UI_ICONS := {
+	"coin": Rect2(627, 98, 9, 12), "star": Rect2(529, 97, 14, 13), "heart": Rect2(579, 98, 11, 12),
+}
+const FONT_BOLD := "res://fonts/MPlusRounded1c-ExtraBold.ttf"
+const FONT_BODY := "res://fonts/MPlusRounded1c-Bold.ttf"
+
 const ITEM_NAMES := {"egg": "egg", "milk": "milk", "wheat": "wheat", "tomato": "tomato",
 	"pumpkin": "pumpkin", "wood": "wood", "flower": "flower", "mushroom": "mushroom",
 	"seed_wheat": "wheat seeds", "seed_tomato": "tomato seeds", "sapling": "sapling", "plant_tree": "trees planted"}
@@ -71,10 +86,29 @@ const GROUND := {
 	"water": Rect2i(0, 0, 16, 16),
 }
 
-const NPC_COLORS := {"maple": Color("#e8a04a"), "clucky": Color("#ef6f6c"), "juniper": Color("#6fbf73")}
+const NPC_COLORS := {"maple": Color("#e8964a"), "clucky": Color("#e86a6a"), "juniper": Color("#6cbf6a")}
 const NPC_NAMES := {"maple": "Maple", "clucky": "Clucky", "juniper": "Juniper"}
 
 static var _font: Font
+static var _bold: Font
+
+static func font_bold() -> Font:
+	if _bold == null:
+		_bold = load(FONT_BOLD) if ResourceLoader.exists(FONT_BOLD) else ThemeDB.fallback_font
+	return _bold
+
+static func ui_icon(id: String) -> AtlasTexture:
+	return atlas(UI_SHEET, UI_ICONS[id])
+
+static func item_world(id: String) -> Texture2D:
+	if ITEM_WORLD.has(id):
+		return atlas(ITEM_WORLD[id]["path"], ITEM_WORLD[id]["region"])
+	return item_icon(id)
+
+static func item_world_modulate(id: String) -> Color:
+	if ITEM_WORLD.has(id):
+		return ITEM_WORLD[id].get("modulate", Color.WHITE)
+	return item_modulate(id)
 static var _cache := {}
 
 static func tex(path: String) -> Texture2D:
@@ -146,7 +180,7 @@ static func ground_image(path: String) -> Image:
 ## Crisp world-space font (MSDF) for labels drawn under the zoomed camera.
 static func world_font() -> Font:
 	if _font == null:
-		var base: FontFile = load("res://fonts/Fredoka.ttf")
+		var base: FontFile = load(FONT_BOLD if ResourceLoader.exists(FONT_BOLD) else "res://fonts/Fredoka.ttf")
 		var f: FontFile = base.duplicate()
 		f.multichannel_signed_distance_field = true
 		f.msdf_pixel_range = 16

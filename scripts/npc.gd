@@ -4,8 +4,8 @@ extends StaticBody2D
 var npc_id := "maple"
 var sprite: AnimatedSprite2D
 var body: Node2D       # squash/stretch root
-var prompt: Label
-var tag: Label
+var pill_holder: Node2D
+var pill: PanelContainer
 var _bubble: Node2D
 var _anim_tween: Tween
 var _prompt_tween: Tween
@@ -36,13 +36,7 @@ func _ready() -> void:
 	col.shape = sh
 	col.position = Vector2(0, -3)
 	add_child(col)
-	tag = _label(Art.NPC_NAMES[npc_id], 30, Color.WHITE, Art.NPC_COLORS[npc_id].darkened(0.35))
-	add_child(tag)
-	_place(tag, -_head_y() - 6)
-	prompt = _label("E  talk", 30, Color("#5b3a29"), Color("#fff8e7"))
-	add_child(prompt)
-	_place(prompt, -_head_y() - 16)
-	prompt.modulate.a = 0.0
+	_build_pill()
 	# idle breathing
 	var t := create_tween().set_loops()
 	t.tween_property(sprite, "scale", Vector2(1.04, 0.96), 0.9).set_trans(Tween.TRANS_SINE)
@@ -71,6 +65,46 @@ func _place(l: Label, y: float) -> void:
 	var sz := l.get_minimum_size()
 	l.position = Vector2(-sz.x * 0.1, y - sz.y * 0.2)
 
+func _build_pill() -> void:
+	pill_holder = Node2D.new()
+	pill_holder.z_index = 40
+	pill_holder.position = Vector2(0, -_head_y() - 4)
+	add_child(pill_holder)
+	var inner := Node2D.new()
+	inner.scale = Vector2(0.2, 0.2)
+	pill_holder.add_child(inner)
+	pill = PanelContainer.new()
+	var sb := UiKit.box(UiKit.CREAM, 30, true)
+	sb.shadow_size = 8
+	sb.shadow_offset = Vector2(0, 5)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 12
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	pill.add_theme_stylebox_override("panel", sb)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	var name_l := UiKit.bold(Art.NPC_NAMES[npc_id], 34, UiKit.BROWN)
+	name_l.add_theme_font_override("font", Art.world_font())
+	hb.add_child(name_l)
+	var key := PanelContainer.new()
+	var ks := UiKit.box(Art.NPC_COLORS[npc_id], 22, false)
+	ks.content_margin_left = 12
+	ks.content_margin_right = 12
+	ks.content_margin_top = 0
+	ks.content_margin_bottom = 2
+	key.add_theme_stylebox_override("panel", ks)
+	var kl := UiKit.bold("E", 28, Color.WHITE)
+	kl.add_theme_font_override("font", Art.world_font())
+	key.add_child(kl)
+	hb.add_child(key)
+	pill.add_child(hb)
+	inner.add_child(pill)
+	pill.reset_size()
+	pill.position = Vector2(-pill.get_combined_minimum_size().x * 0.5, -pill.get_combined_minimum_size().y)
+	pill_holder.scale = Vector2.ZERO
+	pill_holder.visible = false
+
 func set_near(on: bool) -> void:
 	if on == _near:
 		return
@@ -78,13 +112,12 @@ func set_near(on: bool) -> void:
 	if _prompt_tween:
 		_prompt_tween.kill()
 	_prompt_tween = create_tween()
-	var y := -_head_y() - 16 - prompt.get_minimum_size().y * 0.2
 	if on:
-		prompt.position.y = y + 4
-		_prompt_tween.tween_property(prompt, "modulate:a", 1.0, 0.15)
-		_prompt_tween.parallel().tween_property(prompt, "position:y", y, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		pill_holder.visible = true
+		_prompt_tween.tween_property(pill_holder, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
-		_prompt_tween.tween_property(prompt, "modulate:a", 0.0, 0.12)
+		_prompt_tween.tween_property(pill_holder, "scale", Vector2.ZERO, 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		_prompt_tween.tween_callback(func(): pill_holder.visible = false)
 
 func hide_prompt() -> void:
 	set_near(false)

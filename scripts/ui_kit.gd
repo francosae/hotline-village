@@ -37,3 +37,19 @@ static func pop_in(c: CanvasItem, from := 0.6) -> void:
 	var t := c.create_tween()
 	t.tween_property(c, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.parallel().tween_property(c, "modulate:a", 1.0, 0.15)
+
+static func bold(text: String, size: int, col := BROWN) -> Label:
+	var l := label(text, size, col)
+	l.add_theme_font_override("font", Art.font_bold())
+	return l
+
+static func icon(tex: Texture2D, sz: float, mod := Color.WHITE) -> TextureRect:
+	var tr := TextureRect.new()
+	tr.texture = tex
+	tr.self_modulate = mod
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.custom_minimum_size = Vector2(sz, sz)
+	tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return tr
