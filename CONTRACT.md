@@ -33,3 +33,10 @@ that loads `web/hotline.js` (Vapi Web SDK, Deepgram STT nova-3 + Deepgram Aura-2
   - `complete_quest` {item: <item id>}  (game verifies inventory; if short, it informs the agent)
   - `gift` {bells: int}
   - `end_conversation` {}
+
+## Added (round 2)
+- Tool `look_up` {query: string}: handled entirely in JS. hotline.js POSTs to the local server `/api/exa` (scripts/serve.py proxies to Exa /answer with EXA_API_KEY from .env; the key never reaches the browser), then injects the answer into the call with `vapi.send({type:'add-message', message:{role:'system', content}, triggerResponseEnabled:true})` so the villager says what they learned. JS also emits:
+  `{"type":"lookup","npc":id,"query":"...","status":"start"|"done"|"error","summary":"..."}` -> Godot shows a "Maple is looking it up..." bubble + a book/sparkle emote, then a small "learned" card with the summary.
+- Farming (game side): items `seed_tomato`, `seed_wheat`, `sapling`; actions hoe/plant/water/harvest; crops grow through the Basic Plants stages; trees grow from saplings and drop `wood`/fruit. Quests may ask for grown crops (tomato, wheat, pumpkin) and `plant_tree`.
+- Tool `give_quest` also accepts item `plant_tree` (count = trees to plant).
+- Tool `give_item` {item, count}: villager hands the player seeds/saplings (adds to inventory).
