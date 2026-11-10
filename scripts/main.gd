@@ -512,7 +512,9 @@ func _shot_tour() -> void:
 	GameState.add_item("milk", 3)
 	GameState.add_item("egg", 1)
 	player.position = npcs["juniper"].position + Vector2(-14, 16)
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(1.2).timeout
+	_on_picked("egg", player.position + Vector2(10, 0))
+	await get_tree().create_timer(0.3).timeout
 	await _shot("5_garden")
 	player.position = npcs["maple"].position + Vector2(-20, 14)
 	await get_tree().create_timer(1.0).timeout

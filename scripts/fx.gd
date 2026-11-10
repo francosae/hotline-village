@@ -56,19 +56,24 @@ static func burst(parent: Node, pos: Vector2, kind: String) -> void:
 	p.emitting = true
 	p.finished.connect(p.queue_free)
 
-static func float_text(parent: Node, pos: Vector2, text: String, color := Color.WHITE) -> void:
+static func float_text(parent: Node, pos: Vector2, text: String, color := Color("#6b4a32")) -> void:
+	var holder := Node2D.new()
+	holder.z_index = 60
+	holder.position = pos + Vector2(0, -12)
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", Art.world_font())
-	l.add_theme_font_size_override("font_size", 40)
+	l.add_theme_font_size_override("font_size", 44)
 	l.add_theme_color_override("font_color", color)
-	l.add_theme_color_override("font_outline_color", Color("#5b3a29"))
-	l.add_theme_constant_override("outline_size", 12)
-	l.scale = Vector2(0.18, 0.18)
-	l.z_index = 60
-	parent.add_child(l)
-	l.position = pos + Vector2(-l.get_minimum_size().x * 0.09, -20)
-	var t := l.create_tween()
-	t.tween_property(l, "position:y", l.position.y - 16, 0.9).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	t.parallel().tween_property(l, "modulate:a", 0.0, 0.4).set_delay(0.6)
-	t.tween_callback(l.queue_free)
+	l.add_theme_color_override("font_outline_color", Color("#fff8e7"))
+	l.add_theme_constant_override("outline_size", 14)
+	holder.add_child(l)
+	parent.add_child(holder)
+	var sz := l.get_minimum_size()
+	l.position = Vector2(-sz.x * 0.5, -sz.y * 0.5)
+	holder.scale = Vector2.ZERO
+	var t := holder.create_tween()
+	t.tween_property(holder, "scale", Vector2(0.18, 0.18), 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(holder, "position:y", holder.position.y - 14, 0.9).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(holder, "modulate:a", 0.0, 0.35).set_delay(0.65)
+	t.tween_callback(holder.queue_free)

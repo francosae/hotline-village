@@ -156,7 +156,7 @@ func _ready() -> void:
 	player_bubble.add_theme_stylebox_override("panel", pb)
 	player_label = UiKit.label("", 20, Color("#2b5a7a"))
 	player_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	player_label.custom_minimum_size.x = 120
+	player_label.custom_minimum_size.x = 300
 	player_bubble.add_child(player_label)
 	root.add_child(player_bubble)
 	# lookup pill + learned card
@@ -188,7 +188,7 @@ func _ready() -> void:
 	lv.add_child(learned_text)
 	learned.add_child(lv)
 	learned.visible = false
-	learned.rotation = 0.025
+	learned.rotation = 0.0
 	root.add_child(learned)
 	hint = UiKit.label("Esc  hang up", 16, Color("#a08060"))
 	root.add_child(hint)
@@ -215,8 +215,6 @@ func _layout() -> void:
 	if dots.visible:
 		for i in 3:
 			dots.get_child(i).modulate.a = 0.35 + 0.65 * maxf(0.0, sin(_t * 6.0 - i * 0.9))
-	var pw := minf(player_label.get_minimum_size().x + 40, 520)
-	player_label.custom_minimum_size.x = minf(maxf(player_label.get_minimum_size().x, 120), 480)
 	player_bubble.position = Vector2(bx + 940 - player_bubble.size.x - 30, by - player_bubble.size.y - 14)
 	lookup_pill.position = Vector2(bx + 230, by - lookup_pill.size.y - 12)
 	learned.position = Vector2(vs.x - learned.size.x - 30, 150)
