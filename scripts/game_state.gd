@@ -11,6 +11,7 @@ var bells := 100
 var inventory := {}
 var quests: Array = []
 var player_name := "Paul"
+var lessons: Array = []   # [{title, steps, fact}] learned from villagers (npc_actions.gd)
 
 func count(id: String) -> int:
 	return int(inventory.get(id, 0))

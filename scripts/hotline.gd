@@ -161,6 +161,13 @@ func _mock_start(npc: String, context_json: String) -> void:
 		push.call(0.4, {"type": "tool", "name": "animate", "args": {"kind": "spin"}})
 		say.call("Here's a little something for the road, too!")
 		push.call(0.1, {"type": "tool", "name": "gift", "args": {"bells": 50}})
+	if npc == "juniper" and OS.get_environment("HV_MOCK_R3") != "":
+		player_says.call("Can you help me water my crops?")
+		push.call(0.2, {"type": "tool", "name": "help_farm", "args": {"action": "water"}})
+		say.call("Sure! Let me show you how it works, too.")
+		push.call(0.1, {"type": "tool", "name": "teach", "args": {"title": "Watering crops", "steps": ["Face a planted seed", "Press F to water", "Dark soil means it's growing"], "fact": "A tomato is about 95% water."}})
+		push.call(0.1, {"type": "tool", "name": "show_me", "args": {"topic": "harvest"}})
+		push.call(0.1, {"type": "tool", "name": "follow", "args": {}})
 	say.call("Okay, see you around!")
 	push.call(0.8, {"type": "tool", "name": "end_conversation", "args": {}})
 	push.call(0.3, {"type": "status", "status": "ended"})

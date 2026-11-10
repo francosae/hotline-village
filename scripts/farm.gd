@@ -39,6 +39,10 @@ func _ready() -> void:
 	cursor.draw.connect(_draw_cursor)
 	add_child(cursor)
 	_build_hint()
+	var acts := Node.new()
+	acts.set_script(preload("res://scripts/npc_actions.gd"))
+	acts.name = "NpcActions"
+	add_child(acts)
 	call_deferred("_build_plot")
 	var start := {"seed_tomato": 3, "seed_wheat": 3, "sapling": 1}
 	for k in start:
