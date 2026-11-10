@@ -7,7 +7,10 @@ const SDK_URLS = [
   "https://cdn.jsdelivr.net/npm/@vapi-ai/web@3.1.0/+esm",
 ];
 const KEY_STORAGE = "hotline.vapiPublicKey";
-const ITEMS = ["egg", "milk", "wheat", "tomato", "pumpkin", "wood", "flower", "mushroom"];
+const ITEMS = ["egg", "milk", "wheat", "tomato", "pumpkin", "wood", "flower", "mushroom", "seed_tomato", "seed_wheat", "sapling"];
+const QUEST_ITEMS = [...ITEMS, "plant_tree"]; // plant_tree: count = trees to plant
+const GIVE_ITEMS = ["seed_tomato", "seed_wheat", "sapling", "egg", "milk", "flower"];
+const EXA_URL = "/api/exa"; // scripts/serve.py proxies to Exa /answer; the Exa key stays on the server
 const EMOTES = ["happy", "love", "laugh", "surprised", "question", "angry", "sad", "idea", "music", "sleepy"];
 const ANIMS = ["jump", "spin", "shake", "dance"];
 const MODEL = "gpt-4.1-mini";
@@ -109,15 +112,22 @@ const fn = (name, description, properties = {}, required = []) => ({
 const TOOLS = [
   fn("emote", "Show an emote bubble over your head. Use often.", { kind: { type: "string", enum: EMOTES } }, ["kind"]),
   fn("animate", "Play a body animation.", { kind: { type: "string", enum: ANIMS } }, ["kind"]),
-  fn("give_quest", "Offer the player ONE fetch quest.", {
-    item: { type: "string", enum: ITEMS },
+  fn("give_quest", "Offer the player ONE quest: bring items, grow crops, or plant_tree (count = trees to plant).", {
+    item: { type: "string", enum: QUEST_ITEMS },
     count: { type: "integer", minimum: 1, maximum: 5 },
     title: { type: "string", description: "short cute quest title" },
     reward: { type: "integer", minimum: 100, maximum: 500, description: "bells" },
   }, ["item", "count", "title", "reward"]),
-  fn("complete_quest", "Player says they brought the items for your quest. The game checks the inventory.", {
-    item: { type: "string", enum: ITEMS },
+  fn("complete_quest", "Player says they finished your quest. The game checks it.", {
+    item: { type: "string", enum: QUEST_ITEMS },
   }, ["item"]),
+  fn("give_item", "Hand the player seeds, saplings or a small item.", {
+    item: { type: "string", enum: GIVE_ITEMS },
+    count: { type: "integer", minimum: 1, maximum: 5 },
+  }, ["item", "count"]),
+  fn("look_up", "Go look something up: real-world facts, the weather, gardening tips, news, anything factual or current.", {
+    query: { type: "string", description: "a clear web search question" },
+  }, ["query"]),
   fn("gift", "Give the player some bells as a small present.", { bells: { type: "integer", minimum: 1, maximum: 500 } }, ["bells"]),
   fn("end_conversation", "Call after saying goodbye when the chat is over."),
 ];
@@ -146,7 +156,9 @@ function buildAssistant(npcId, ctx) {
     "You live in a cozy Animal Crossing-style village. Talk out loud to the player.",
     "Reply in 1-2 SHORT sentences. Stay in character always. No lists, no emoji, no stage directions.",
     "Use emote and animate tools generously, about every reply, while you speak.",
-    `Quests: offer ONE fetch quest at a time with give_quest. Items: ${ITEMS.join(", ")} only. Count 1-5, reward 100-500 bells. Items are found around the village.`,
+    `Quests: offer ONE quest at a time with give_quest. Items: ${QUEST_ITEMS.join(", ")} only. Count 1-5, reward 100-500 bells. Items are found around the village.`,
+    "Farming: the player can hoe, plant, water and harvest. Hand out seeds or saplings with give_item, then ask for grown crops (tomato, wheat, pumpkin) or plant_tree quests.",
+    "You're curious about the wide world: offer to go look things up. Whenever the player asks anything factual or current (weather, facts, tips, news), say you'll check and call look_up, then share what you learned in character.",
     "The game only knows quests you give with the give_quest tool: ALWAYS call it when you offer one, never just say it.",
     "When the player says they have the items, call complete_quest right away; the game pays the reward, so don't also gift. If a system note says they're short, tell them what's missing.",
     "When the player says bye, say a quick goodbye and call end_conversation.",
@@ -204,10 +216,31 @@ function handleToolCalls(npcId, msg, myGen) {
     if (c.id) seen.add(c.id);
     const args = parseArgs(c.args);
     push({ type: "tool", npc: npcId, name: c.name, args });
+    if (c.name === "look_up") lookUp(npcId, String(args.query || args._raw || ""), myGen);
     if (c.name === "end_conversation") {
       // Let the goodbye finish (hang up shortly after the voice stops), unless the game already did.
       pendingEnd = myGen;
       setTimeout(() => { if (gen === myGen) hotline.stop(); }, 8000);
+    }
+  }
+}
+
+async function lookUp(npcId, query, myGen) {
+  if (!query) return;
+  push({ type: "lookup", npc: npcId, query, status: "start", summary: "" });
+  try {
+    const r = await fetch(EXA_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.answer) throw new Error(data.error || "lookup failed (" + r.status + ")");
+    const summary = String(data.answer);
+    push({ type: "lookup", npc: npcId, query, status: "done", summary, sources: data.sources || [] });
+    if (gen === myGen && vapiInst) {
+      vapiInst.send({ type: "add-message", message: { role: "system", content: `You looked this up: ${summary} Tell the player what you learned, in character, 1-2 sentences, with round numbers said naturally.` }, triggerResponseEnabled: true });
+    }
+  } catch (e) {
+    push({ type: "lookup", npc: npcId, query, status: "error", summary: errText(e) });
+    if (gen === myGen && vapiInst) {
+      vapiInst.send({ type: "add-message", message: { role: "system", content: "Your look-up found nothing. Say so playfully, in character, in one short sentence." }, triggerResponseEnabled: true });
     }
   }
 }
