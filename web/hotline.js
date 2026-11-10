@@ -130,7 +130,7 @@ function warmMic() {
   if (!micPromise && navigator.mediaDevices?.getUserMedia) {
     micPromise = navigator.mediaDevices.getUserMedia({ audio: true })
       .then((s) => { s.getTracks().forEach((t) => t.stop()); return true; })
-      .catch((e) => { micPromise = null; push({ type: "status", npc: "", status: "error", message: "Mic: " + (e?.message || e) }); return false; });
+      .catch((e) => { micPromise = null; push({ type: "status", npc: "", status: "error", message: errText(e) }); return false; });
   }
   return micPromise || Promise.resolve(false);
 }
@@ -334,8 +334,11 @@ function wire(v, npcId, myGen) {
   v.on("call-start-failed", fail);
 }
 
+const MIC_BLOCKED = "Microphone is blocked. Click the lock icon left of the address bar, allow Microphone, then reload.";
 function errText(e) {
   if (!e) return "unknown error";
+  const raw = (() => { try { return typeof e === "string" ? e : JSON.stringify(e); } catch (_) { return String(e); } })();
+  if (/NotAllowedError|Permission denied|microphone-preflight|NotFoundError/i.test(raw + " " + (e?.message || ""))) return MIC_BLOCKED;
   if (typeof e === "string") return e;
   const parts = [e.errorMsg, e.message, e.error?.message, e.error?.msg, e.error?.error?.message, e.type, e.stage].filter(Boolean);
   if (parts.length) return [...new Set(parts.map(String))].join(" | ");
