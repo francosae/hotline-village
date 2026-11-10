@@ -1,0 +1,7 @@
+build/
+.godot/
+_src/
+*.import.tmp
+.env
+web/local-config.js
+build/web/local-config.js
