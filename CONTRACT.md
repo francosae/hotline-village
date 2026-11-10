@@ -40,3 +40,14 @@ that loads `web/hotline.js` (Vapi Web SDK, Deepgram STT nova-3 + Deepgram Aura-2
 - Farming (game side): items `seed_tomato`, `seed_wheat`, `sapling`; actions hoe/plant/water/harvest; crops grow through the Basic Plants stages; trees grow from saplings and drop `wood`/fruit. Quests may ask for grown crops (tomato, wheat, pumpkin) and `plant_tree`.
 - Tool `give_quest` also accepts item `plant_tree` (count = trees to plant).
 - Tool `give_item` {item, count}: villager hands the player seeds/saplings (adds to inventory).
+
+## Added (round 3): commands, teaching, memory
+New tools (JS forwards them as `{"type":"tool",...}` like the others; game executes them visibly):
+- `follow` {}                 villager walks after the player (keeps ~24px distance) until `stay`.
+- `stay` {}                   villager stops where it is.
+- `go_to` {place: "farm"|"pond"|"plaza"|"garden"|"house"}  villager walks there (simple steering, no pathfinding needed).
+- `help_farm` {action: "water"|"harvest"|"till"}  villager walks to the farm plot and does that action on every plot tile, one by one, with the same FX the player gets (harvest goes to the player's inventory).
+- `show_me` {topic: "till"|"plant"|"water"|"harvest"|"plant_tree"|"quests"}  villager demonstrates: walks to the right spot, performs it once, and the game shows the matching lesson card.
+- `teach` {title: string, steps: [string, 2-4 short steps], fact?: string}  game shows an AC-style "Lesson" card (numbered steps, optional fun fact) for ~12 s, and saves it to a "Lessons learned" list in GameState (shown in the quest card as a count).
+- `give_quest` gets optional `lesson` {string}: one-sentence how-to shown under the quest in the quest card.
+Memory is JS-only (localStorage per villager: rolling summary + last turns + facts about the player); Godot does nothing for it.
