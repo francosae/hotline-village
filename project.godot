@@ -3,6 +3,7 @@ config_version=5
 
 [application]
 config/name="Hotline Village"
+config/icon="res://assets/sprout/Objects/Egg item.png"
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 

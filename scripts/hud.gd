@@ -83,6 +83,7 @@ func _ready() -> void:
 	toast_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(toast_holder)
 	GameState.inventory_changed.connect(refresh_pocket)
+	GameState.inventory_changed.connect(refresh_quests)
 	GameState.quests_changed.connect(refresh_quests)
 	GameState.bells_changed.connect(_on_bells)
 	_shown_bells = GameState.bells
