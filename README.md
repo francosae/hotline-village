@@ -1,5 +1,8 @@
 # Hotline Village
 
+**▶ Demo video:** https://www.loom.com/share/ad90304b7fcb4f828b8d00ceaef03c59  
+**🎮 Play it:** https://hotline-village.vercel.app
+
 An Animal Crossing-style village where every villager is a live **Vapi** voice agent. Walk up to Maple the cow shopkeeper, Clucky the dramatic chicken or Juniper the dreamy gardener and just talk: **Deepgram nova-3** hears you, an OpenAI model (via Vapi) thinks, and a distinct **Deepgram Aura-2** voice answers. Villagers hand out side quests and seeds, ask for grown crops and planted trees, react in-game (emote bubbles, jumps, spins, dances, bell gifts) through tool calls, and can **go look things up** on the real web with **Exa** (weather, facts, gardening tips) and tell you what they learned in character.
 
 Built for the Vapi "Side Quest Hotline" hackathon. Godot 4.7.2 web build, made with Maneki Engine's Godot skills.
